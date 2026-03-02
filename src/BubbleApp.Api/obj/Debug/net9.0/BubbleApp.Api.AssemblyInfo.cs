@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BubbleApp.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+31be01fc23137df3e6ea7b3519798cb4c95cd846")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4352aa5219d57d8351c26e9f0095254a3cbf7fe7")]
 [assembly: System.Reflection.AssemblyProductAttribute("BubbleApp.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BubbleApp.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
