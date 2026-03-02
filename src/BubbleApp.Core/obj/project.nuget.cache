@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Mlyqh56Z9hI=",
+  "dgSpecHash": "mhVbva1nrRM=",
   "success": true,
-  "projectFilePath": "D:\\FloatingBubble\\src\\BubbleApp.Core\\BubbleApp.Core.csproj",
+  "projectFilePath": "D:\\bubble-admin\\src\\BubbleApp.Core\\BubbleApp.Core.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\bcrypt.net-next\\4.1.0\\bcrypt.net-next.4.1.0.nupkg.sha512",
     "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\dnsclient\\1.6.1\\dnsclient.1.6.1.nupkg.sha512",

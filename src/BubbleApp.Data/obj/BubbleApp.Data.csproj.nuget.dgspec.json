@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\FloatingBubble\\src\\BubbleApp.Data\\BubbleApp.Data.csproj": {}
+    "D:\\bubble-admin\\src\\BubbleApp.Data\\BubbleApp.Data.csproj": {}
   },
   "projects": {
-    "D:\\FloatingBubble\\src\\BubbleApp.Common\\BubbleApp.Common.csproj": {
+    "D:\\bubble-admin\\src\\BubbleApp.Common\\BubbleApp.Common.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\FloatingBubble\\src\\BubbleApp.Common\\BubbleApp.Common.csproj",
+        "projectUniqueName": "D:\\bubble-admin\\src\\BubbleApp.Common\\BubbleApp.Common.csproj",
         "projectName": "BubbleApp.Common",
-        "projectPath": "D:\\FloatingBubble\\src\\BubbleApp.Common\\BubbleApp.Common.csproj",
+        "projectPath": "D:\\bubble-admin\\src\\BubbleApp.Common\\BubbleApp.Common.csproj",
         "packagesPath": "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\",
-        "outputPath": "D:\\FloatingBubble\\src\\BubbleApp.Common\\obj\\",
+        "outputPath": "D:\\bubble-admin\\src\\BubbleApp.Common\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -75,14 +75,14 @@
         }
       }
     },
-    "D:\\FloatingBubble\\src\\BubbleApp.Data\\BubbleApp.Data.csproj": {
+    "D:\\bubble-admin\\src\\BubbleApp.Data\\BubbleApp.Data.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\FloatingBubble\\src\\BubbleApp.Data\\BubbleApp.Data.csproj",
+        "projectUniqueName": "D:\\bubble-admin\\src\\BubbleApp.Data\\BubbleApp.Data.csproj",
         "projectName": "BubbleApp.Data",
-        "projectPath": "D:\\FloatingBubble\\src\\BubbleApp.Data\\BubbleApp.Data.csproj",
+        "projectPath": "D:\\bubble-admin\\src\\BubbleApp.Data\\BubbleApp.Data.csproj",
         "packagesPath": "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\",
-        "outputPath": "D:\\FloatingBubble\\src\\BubbleApp.Data\\obj\\",
+        "outputPath": "D:\\bubble-admin\\src\\BubbleApp.Data\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -103,8 +103,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "D:\\FloatingBubble\\src\\BubbleApp.Common\\BubbleApp.Common.csproj": {
-                "projectPath": "D:\\FloatingBubble\\src\\BubbleApp.Common\\BubbleApp.Common.csproj"
+              "D:\\bubble-admin\\src\\BubbleApp.Common\\BubbleApp.Common.csproj": {
+                "projectPath": "D:\\bubble-admin\\src\\BubbleApp.Common\\BubbleApp.Common.csproj"
               }
             }
           }

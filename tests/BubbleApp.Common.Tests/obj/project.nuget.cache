@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "I0zgeIVdE2k=",
+  "dgSpecHash": "e6iaxmFEF0w=",
   "success": true,
-  "projectFilePath": "D:\\FloatingBubble\\tests\\BubbleApp.Common.Tests\\BubbleApp.Common.Tests.csproj",
+  "projectFilePath": "D:\\bubble-admin\\tests\\BubbleApp.Common.Tests\\BubbleApp.Common.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\coverlet.collector\\6.0.2\\coverlet.collector.6.0.2.nupkg.sha512",
     "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\fluentvalidation\\12.1.1\\fluentvalidation.12.1.1.nupkg.sha512",

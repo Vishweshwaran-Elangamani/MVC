@@ -1834,11 +1834,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\FloatingBubble\\tests\\BubbleApp.Data.Tests\\BubbleApp.Data.Tests.csproj",
+      "projectUniqueName": "D:\\bubble-admin\\tests\\BubbleApp.Data.Tests\\BubbleApp.Data.Tests.csproj",
       "projectName": "BubbleApp.Data.Tests",
-      "projectPath": "D:\\FloatingBubble\\tests\\BubbleApp.Data.Tests\\BubbleApp.Data.Tests.csproj",
+      "projectPath": "D:\\bubble-admin\\tests\\BubbleApp.Data.Tests\\BubbleApp.Data.Tests.csproj",
       "packagesPath": "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\",
-      "outputPath": "D:\\FloatingBubble\\tests\\BubbleApp.Data.Tests\\obj\\",
+      "outputPath": "D:\\bubble-admin\\tests\\BubbleApp.Data.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1859,8 +1859,8 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "D:\\FloatingBubble\\src\\BubbleApp.Data\\BubbleApp.Data.csproj": {
-              "projectPath": "D:\\FloatingBubble\\src\\BubbleApp.Data\\BubbleApp.Data.csproj"
+            "D:\\bubble-admin\\src\\BubbleApp.Data\\BubbleApp.Data.csproj": {
+              "projectPath": "D:\\bubble-admin\\src\\BubbleApp.Data\\BubbleApp.Data.csproj"
             }
           }
         }

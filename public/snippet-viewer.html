@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Bubble Snippet Viewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+    .bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .bar input { width: 280px; padding: 6px 8px; }
+    .bar button { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; background: #f7f7f8; cursor: pointer; }
+    pre { white-space: pre-wrap; background: #0b1020; color: #e7eaf6; padding: 16px; border-radius: 8px; line-height: 1.35; }
+    .msg { margin-top: 8px; color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <label>Workspace slug:</label>
+    <input id="slug" placeholder="eepz" />
+    <button id="load">Load</button>
+    <button id="copy">Copy</button>
+    <button id="download">Download .html</button>
+  </div>
+
+  <pre id="code">(snippet will appear here)</pre>
+  <div id="err" class="msg"></div>
+
+  <script>
+    const elSlug = document.getElementById('slug');
+    const elLoad = document.getElementById('load');
+    const elCopy = document.getElementById('copy');
+    const elDl   = document.getElementById('download');
+    const elCode = document.getElementById('code');
+    const elErr  = document.getElementById('err');
+
+    // slug from query (?slug=eepz)
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('slug')) elSlug.value = qs.get('slug');
+
+    // Read API base that Workspaces.jsx will stash in localStorage:
+    function resolveApiBase() {
+      return localStorage.getItem('VITE_API_BASE') || 'http://localhost:5013';
+    }
+
+    async function loadSnippet() {
+      elErr.textContent = '';
+      elCode.textContent = '(loading...)';
+
+      const slug = (elSlug.value || '').trim();
+      if (!slug) { elErr.textContent = 'Enter a workspace slug.'; elCode.textContent = ''; return; }
+
+      const token = localStorage.getItem('bubble_admin_token');
+      if (!token) { elErr.textContent = 'Not authorized. Login in Admin first.'; elCode.textContent = ''; return; }
+
+      const base = resolveApiBase();
+      const url  = `${base}/api/snippet/${encodeURIComponent(slug)}`;
+
+      try {
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+        if (!res.ok) {
+          elErr.textContent = `HTTP ${res.status} — failed to fetch snippet.`;
+          elCode.textContent = '';
+          return;
+        }
+        const data = await res.json();   // { workspace, snippet }
+        const snippet = data.snippet || '';
+        elCode.textContent = snippet;
+
+        elDl.onclick = () => {
+          const blob = new Blob([snippet], { type: 'text/plain;charset=utf-8' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `bubble-snippet-${slug}.html`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        };
+      } catch (err) {
+        elErr.textContent = 'Network error fetching snippet.';
+        elCode.textContent = '';
+      }
+    }
+
+    elLoad.onclick = loadSnippet;
+    elCopy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(elCode.textContent || '');
+        elErr.textContent = 'Copied!';
+        setTimeout(() => elErr.textContent = '', 1000);
+      } catch {
+        elErr.textContent = 'Copy failed.';
+      }
+    };
+
+    if (elSlug.value) loadSnippet();
+  </script>
+</body>
+</html>

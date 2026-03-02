@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "COGzp3dgIz4=",
+  "dgSpecHash": "aHsmT6sppjA=",
   "success": true,
-  "projectFilePath": "D:\\FloatingBubble\\tests\\BubbleApp.Core.Tests\\BubbleApp.Core.Tests.csproj",
+  "projectFilePath": "D:\\bubble-admin\\tests\\BubbleApp.Core.Tests\\BubbleApp.Core.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\bcrypt.net-next\\4.1.0\\bcrypt.net-next.4.1.0.nupkg.sha512",
     "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\coverlet.collector\\6.0.2\\coverlet.collector.6.0.2.nupkg.sha512",

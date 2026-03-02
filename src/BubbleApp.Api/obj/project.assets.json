@@ -2524,11 +2524,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\FloatingBubble\\src\\BubbleApp.Api\\BubbleApp.Api.csproj",
+      "projectUniqueName": "D:\\bubble-admin\\src\\BubbleApp.Api\\BubbleApp.Api.csproj",
       "projectName": "BubbleApp.Api",
-      "projectPath": "D:\\FloatingBubble\\src\\BubbleApp.Api\\BubbleApp.Api.csproj",
+      "projectPath": "D:\\bubble-admin\\src\\BubbleApp.Api\\BubbleApp.Api.csproj",
       "packagesPath": "C:\\Users\\vishweshwaran.e\\.nuget\\packages\\",
-      "outputPath": "D:\\FloatingBubble\\src\\BubbleApp.Api\\obj\\",
+      "outputPath": "D:\\bubble-admin\\src\\BubbleApp.Api\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -2549,8 +2549,8 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "D:\\FloatingBubble\\src\\BubbleApp.Core\\BubbleApp.Core.csproj": {
-              "projectPath": "D:\\FloatingBubble\\src\\BubbleApp.Core\\BubbleApp.Core.csproj"
+            "D:\\bubble-admin\\src\\BubbleApp.Core\\BubbleApp.Core.csproj": {
+              "projectPath": "D:\\bubble-admin\\src\\BubbleApp.Core\\BubbleApp.Core.csproj"
             }
           }
         }
