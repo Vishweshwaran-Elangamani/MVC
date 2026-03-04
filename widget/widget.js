@@ -1,19 +1,20 @@
 (function () {
   const __WIDGET_VERSION__ = "bubble-widget v1.2 (panel follows button; clears right/bottom)";
-
+ 
   function start() {
     console.log("[Bubble] starting", __WIDGET_VERSION__);
-
+ 
     // ---- Read user injected by the snippet ----
     const u = window.BUBBLE_USER || {};
     if (!u || !u.id) {
       console.warn("[Bubble] Missing window.BUBBLE_USER.id");
       return;
     }
-
+ 
     const WORKSPACE = u.workspace || "default";
+    const WORKSPACE_KEY = u.key || ""; // per-workspace key placed by snippet
     const API_BASE = "http://localhost:5013"; // <-- set to your API URL
-
+ 
     // ---- Styles (panel uses left/top; not right/bottom) ----
     const style = document.createElement("style");
     style.textContent = `
@@ -35,13 +36,13 @@
       #bubble-error{ color:#b91c1c; padding:4px 12px; display:none; }
     `;
     document.head.appendChild(style);
-
+ 
     // ---- Button & panel DOM ----
     const btn = document.createElement("div");
     btn.id = "bubble-btn";
     btn.textContent = "●";
     document.body.appendChild(btn);
-
+ 
     const panel = document.createElement("div");
     panel.id = "bubble-panel";
     panel.innerHTML = `
@@ -54,55 +55,55 @@
       </div>
     `;
     document.body.appendChild(panel);
-
+ 
     const elErr  = panel.querySelector("#bubble-error");
     const elList = panel.querySelector("#bubble-list");
     const BTN_SIZE  = 48;   // keep in sync with CSS
     const PANEL_W   = 300;  // keep in sync with CSS
     const PANEL_H   = 380;  // keep in sync with CSS max-height
     const PANEL_GAP = 8;
-
+ 
     // ---- Position state & helpers ----
     let btnPos = { left: null, top: null }; // last known button position (px)
-
+ 
     function placePanelNearButton() {
       if (!panel || panel.style.display === "none") return;
-
+ 
       const vw = window.innerWidth, vh = window.innerHeight;
       let left = btnPos.left;
       let top  = btnPos.top;
-
+ 
       // If no explicit left/top yet (first open), derive from DOM rect
       if (left == null || top == null) {
         const rect = btn.getBoundingClientRect();
         left = rect.left;
         top  = rect.top;
       }
-
+ 
       // Decide side (left/right) and vertical flip (up/down) to keep panel on-screen
       const openLeft = (left + BTN_SIZE + PANEL_GAP + PANEL_W > vw);
       const openUp   = (top + PANEL_H > vh);
-
+ 
       const panelLeft = openLeft
         ? Math.max(0, left - PANEL_GAP - PANEL_W)
         : Math.min(vw - PANEL_W, left + BTN_SIZE + PANEL_GAP);
-
+ 
       const panelTop = openUp
         ? Math.max(0, top + BTN_SIZE - PANEL_H)
         : Math.min(vh - PANEL_H, top);
-
+ 
       // Apply left/top and explicitly clear right/bottom to defeat any old CSS
       panel.style.left   = `${Math.round(panelLeft)}px`;
       panel.style.top    = `${Math.round(panelTop)}px`;
       panel.style.right  = "unset";
       panel.style.bottom = "unset";
     }
-
+ 
     window.addEventListener("resize", placePanelNearButton);
-
+ 
     // ---- Drag behavior (left/top positioning, panel follows) ----
     let dragging = false, offset = [0, 0];
-
+ 
     // Initial button position expressed via left/top (not right/bottom)
     (function setInitialBtnPosition() {
       const vw = window.innerWidth, vh = window.innerHeight;
@@ -113,14 +114,14 @@
       btn.style.right  = "unset";
       btn.style.bottom = "unset";
     })();
-
+ 
     btn.addEventListener("mousedown", e => {
       dragging = true;
       const rect = btn.getBoundingClientRect();
       offset = [e.clientX - rect.left, e.clientY - rect.top];
       btn.style.cursor = "grabbing";
     });
-
+ 
     document.addEventListener("mouseup", () => {
       if (!dragging) return;
       dragging = false;
@@ -130,28 +131,28 @@
       btnPos.top  = Math.min(vh - BTN_SIZE, Math.max(0, btn.offsetTop));
       placePanelNearButton();
     });
-
+ 
     document.addEventListener("mousemove", e => {
       if (!dragging) return;
-
+ 
       const vw = window.innerWidth, vh = window.innerHeight;
       let x = e.clientX - offset[0];
       let y = e.clientY - offset[1];
-
+ 
       x = Math.min(vw - BTN_SIZE, Math.max(0, x));
       y = Math.min(vh - BTN_SIZE, Math.max(0, y));
-
+ 
       btn.style.left   = `${x}px`;
       btn.style.top    = `${y}px`;
       btn.style.right  = "unset";
       btn.style.bottom = "unset";
-
+ 
       btnPos.left = x;
       btnPos.top  = y;
-
+ 
       placePanelNearButton();
     });
-
+ 
     // ---- Toggle panel near current button position ----
     btn.addEventListener("click", () => {
       const willOpen = panel.style.display === "none";
@@ -168,20 +169,21 @@
         placePanelNearButton();
       }
     });
-
+ 
     // ---- Utilities ----
     function showError(msg) {
       elErr.style.display = "block";
       elErr.textContent = msg;
       setTimeout(() => { elErr.style.display = "none"; }, 4000);
     }
-
+ 
     function escapeHtml(s){
-      return String(s || "").replace(/[&<>\"']/g, c => ({
+      // (kept simple to match your original; safe input recommended)
+      return String(s || "").replace(/[&<>"']/g, c => ({
         "&":"&", "<":"<", ">":">", "\"":"\"", "'":"'"
       }[c]));
     }
-
+ 
     async function httpJson(url, options = {}, retries = 1) {
       try {
         const res = await fetch(url, options);
@@ -192,24 +194,38 @@
         throw err;
       }
     }
-
+ 
     function qs(obj) { return new URLSearchParams(obj).toString(); }
-
-    // ---- API calls ----
+ 
+    // ------------------------------------------------------------------
+    // API: include WORKSPACE_KEY to enforce partitioning on the backend
+    // ------------------------------------------------------------------
     const listNotes = () =>
-      httpJson(`${API_BASE}/api/notes?${qs({ workspace: WORKSPACE, userId: String(u.id) })}`);
-
+      httpJson(`${API_BASE}/api/notes?${qs({
+        workspace: WORKSPACE,
+        key: WORKSPACE_KEY,
+        userId: String(u.id)
+      })}`);
+ 
     const addNote = (content) =>
       httpJson(`${API_BASE}/api/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspace: WORKSPACE, userId: String(u.id), content })
+        body: JSON.stringify({
+          workspace: WORKSPACE,
+          key: WORKSPACE_KEY,
+          userId: String(u.id),
+          content
+        })
       });
-
+ 
     const delNote = (id) =>
-      fetch(`${API_BASE}/api/notes/${id}?${qs({ workspace: WORKSPACE, userId: String(u.id) })}`,
-        { method: "DELETE" });
-
+      fetch(`${API_BASE}/api/notes/${id}?${qs({
+        workspace: WORKSPACE,
+        key: WORKSPACE_KEY,
+        userId: String(u.id)
+      })}`, { method: "DELETE" });
+ 
     // ---- Render ----
     async function render() {
       try {
@@ -220,7 +236,7 @@
             <button data-id="${n.id}" style="border:none;background:#f3f4f6;border-radius:6px;padding:4px 6px;">x</button>
           </div>
         `).join("");
-
+ 
         elList.querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
           await delNote(b.dataset.id);
           render();
@@ -229,7 +245,7 @@
         showError("Failed to load notes");
       }
     }
-
+ 
     // ---- Add handler ----
     document.getElementById("bubble-add").onclick = async () => {
       const inp = document.getElementById("bubble-text");
@@ -243,15 +259,70 @@
         showError("Failed to add note");
       }
     };
-
-    // Initial render
+ 
+    // =========================
+    // Appearance (instant, long-poll)
+    // =========================
+    function applyAppearance(cfg) {
+      if (!cfg) return;
+      if (cfg.color && typeof cfg.color === "string") {
+        btn.style.background = cfg.color.trim();
+      }
+      if (typeof cfg.text === "string" && cfg.text.length > 0) {
+        btn.textContent = cfg.text;
+      }
+    }
+ 
+    let currentVersion = 0;
+ 
+    async function fetchInitialAppearance() {
+      try {
+        const cfg = await httpJson(`${API_BASE}/api/widget/config?${qs({
+          workspace: WORKSPACE,
+          key: WORKSPACE_KEY
+        })}`);
+        applyAppearance(cfg);
+        currentVersion = cfg.version || 0;
+      } catch {
+        // ignore; will retry via long-poll loop anyway
+      }
+    }
+ 
+    async function longPoll() {
+      while (true) {
+        try {
+          const url = `${API_BASE}/api/widget/config/long?${qs({
+            workspace: WORKSPACE,
+            key: WORKSPACE_KEY,
+            since: String(currentVersion || 0)
+          })}`;
+          const res = await fetch(url);
+          if (res.status === 200) {
+            const cfg = await res.json();
+            applyAppearance(cfg);
+            currentVersion = cfg.version || currentVersion;
+          }
+          // 204 (no content) just loops again immediately
+        } catch {
+          // transient network hiccup: brief backoff then continue
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+ 
+    // Kick off appearance flow (independent from your snippet's evaluate() loop)
+    fetchInitialAppearance().then(longPoll);
+ 
+    // Initial notes render
     render();
   }
-
+ 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start);
   } else {
     start();
   }
-  
+ 
 })();
+ 
+ 

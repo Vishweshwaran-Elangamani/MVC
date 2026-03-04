@@ -1,8 +1,10 @@
-﻿using BubbleApp.Common.Entities;
+﻿using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using BubbleApp.Common.Entities;
 using BubbleApp.Data.IRepository;
 using BubbleApp.Data.Mongo;
 using MongoDB.Driver;
-using System.Threading;
 
 namespace BubbleApp.Data.Repository
 {
@@ -17,13 +19,47 @@ namespace BubbleApp.Data.Repository
             return ws;
         }
 
-        public Task<Workspace?> GetBySlugAsync(string slug, CancellationToken ct = default)
-            => _ctx.Workspaces.Find(w => w.Slug == slug).FirstOrDefaultAsync(ct)!;
+        public Task<Workspace?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+            _ctx.Workspaces.Find(w => w.Slug == slug).FirstOrDefaultAsync(ct)!;
+
+        public Task<Workspace?> GetByIdAsync(string workspaceId, CancellationToken ct = default) =>
+            _ctx.Workspaces.Find(w => w.Id == workspaceId).FirstOrDefaultAsync(ct)!;
 
         public async Task<IReadOnlyList<Workspace>> ListByAdminAsync(string adminId, CancellationToken ct = default)
         {
             var list = await _ctx.Workspaces.Find(w => w.AdminId == adminId).ToListAsync(ct);
             return list;
         }
+
+        public Task<Workspace?> GetByKeyHashAsync(string keyHash, CancellationToken ct = default) =>
+            _ctx.Workspaces.Find(w => w.WorkspaceKeyHash == keyHash).FirstOrDefaultAsync(ct)!;
+
+        public Task RotateKeyAsync(string workspaceId, string newPlainKey, string newKeyHash, CancellationToken ct = default)
+        {
+            var update = Builders<Workspace>.Update
+                .Set(w => w.WorkspaceKey, newPlainKey)
+                .Set(w => w.WorkspaceKeyHash, newKeyHash);
+            return _ctx.Workspaces.UpdateOneAsync(w => w.Id == workspaceId, update, cancellationToken: ct);
+        }
+
+        public Task<Workspace?> GetByAdminAndSlugAsync(string adminId, string slug, CancellationToken ct = default) =>
+            _ctx.Workspaces.Find(w => w.AdminId == adminId && w.Slug == slug).FirstOrDefaultAsync(ct)!;
+
+        // --- NEW ---
+        public Task UpdateAppearanceAsync(string workspaceId, string bubbleColor, string bubbleText, CancellationToken ct = default)
+        {
+            var update = Builders<Workspace>.Update
+                .Set(w => w.BubbleColor, bubbleColor)
+                .Set(w => w.BubbleText, bubbleText);
+
+            return _ctx.Workspaces.UpdateOneAsync(w => w.Id == workspaceId, update, cancellationToken: ct);
+        }
+        public Task DeleteAsync(string workspaceId, CancellationToken ct = default)
+{
+    return _ctx.Workspaces.DeleteOneAsync(
+        w => w.Id == workspaceId,
+        ct);
+}
+ 
     }
 }
