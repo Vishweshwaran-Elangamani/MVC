@@ -10,7 +10,9 @@ namespace BubbleApp.Core.Service
         private readonly IWorkspaceRepository _workspaces;
  
         public SnippetService(IWorkspaceRepository workspaces)
-            => _workspaces = workspaces;
+        {
+            _workspaces = workspaces;
+        }
  
         public SnippetResponse Generate(string workspaceSlug, Uri widgetCdnUrl)
         {
@@ -26,148 +28,251 @@ namespace BubbleApp.Core.Service
 <script>
 (function () {
  
-  var WIDGET_URL     = "{{widgetCdnUrl}}";
-  var WORKSPACE      = "{{workspaceSlug}}";
-  var WORKSPACE_KEY  = "{{workspaceKey}}";
+var WIDGET_URL = "{{widgetCdnUrl}}";
+var WORKSPACE = "{{workspaceSlug}}";
+var WORKSPACE_KEY = "{{workspaceKey}}";
  
-  var LOGIN_HINTS = ["/login", "/signin", "/auth"];
-  var POLL_MS = 1500;
+if(window.__BUBBLE_DISABLED__) return;
  
-  var workspaceDisabled = false;
+var LOGIN_HINTS = ["/login", "/signin", "/auth"];
+var workspaceDisabled = false;
  
-  function safeParse(j){ try { return JSON.parse(j); } catch { return null; } }
-  function pick(o,p){ if(!o||!p) return; return p.split('.').reduce(function(a,k){return a&&a[k];}, o); }
-  function getCookie(n){ var m=document.cookie.split('; ').find(c=>c.indexOf(n+'=')===0); return m?m.split('=')[1]:''; }
-  function meta(name){ var el=document.querySelector('meta[name="'+name+'"]'); return el?el.content:''; }
-  function qp(name){ return new URLSearchParams(location.search).get(name) || ''; }
+/* ---------------- USER DETECTION ---------------- */
  
-  var GLOBAL_VAR="AppUser", REDUX_STORE_VAR="__REDUX_STORE__", REDUX_ID="auth.user.id", REDUX_EM="auth.user.email";
-  var LS_USER="user", LS_UID="userId", LS_EM="email", ID="id", ALTID="userId", EMAIL="email";
+function safeParse(j){
+ try { return JSON.parse(j); } catch { return null; }
+}
  
-  function getUser(){
-    var g = window[GLOBAL_VAR];
-    if(g){
-      var gid=(g[ID]||g[ALTID]||"").toString().trim();
-      var gem=g[EMAIL]||"";
-      if(gid) return {id:gid,email:gem};
-    }
+function pick(o,p){
+ if(!o||!p) return;
+ return p.split('.').reduce(function(a,k){return a&&a[k];}, o);
+}
  
-    var store = window[REDUX_STORE_VAR];
-    if(store && typeof store.getState==="function"){
-      var st=store.getState();
-      var rid=(pick(st,REDUX_ID)||"").toString().trim();
-      var rem=pick(st,REDUX_EM)||"";
-      if(rid) return {id:rid,email:rem};
-    }
+function getCookie(n){
+ var m=document.cookie.split('; ').find(function(c){
+  return c.indexOf(n+'=')===0;
+ });
+ return m?m.split('=')[1]:'';
+}
  
-    var u=safeParse(localStorage.getItem(LS_USER));
-    var lid=(u&&(u[ALTID]||u[ID])) || localStorage.getItem(LS_UID) || "";
-    var lem=(u&&u[EMAIL]) || localStorage.getItem(LS_EM) || "";
-    lid=(lid||"").toString().trim();
-    if(lid) return {id:lid,email:lem};
+function meta(name){
+ var el=document.querySelector('meta[name="'+name+'"]');
+ return el?el.content:'';
+}
  
-    var cid=decodeURIComponent(getCookie(LS_UID)||"");
-    var cem=decodeURIComponent(getCookie(LS_EM)||"");
-    cid=(cid||"").toString().trim();
-    if(cid) return {id:cid,email:cem};
+function qp(name){
+ return new URLSearchParams(location.search).get(name) || '';
+}
  
-    var mid=(meta("bubble:userId")||"").toString().trim();
-    var mem=meta("bubble:email")||"";
-    if(mid) return {id:mid,email:mem};
+var GLOBAL_VAR="AppUser";
+var REDUX_STORE_VAR="__REDUX_STORE__";
+var REDUX_ID="auth.user.id";
+var REDUX_EM="auth.user.email";
  
-    var qid=(qp("bubbleUserId")||"").toString().trim();
-    var qem=qp("bubbleEmail")||"";
-    if(qid) return {id:qid,email:qem};
+var LS_USER="user";
+var LS_UID="userId";
+var LS_EM="email";
  
-    return { id:"", email:"" };
+var ID="id";
+var ALTID="userId";
+var EMAIL="email";
+ 
+function getUser(){
+ 
+ var g = window[GLOBAL_VAR];
+ 
+ if(g){
+  var gid=(g[ID]||g[ALTID]||"").toString().trim();
+  var gem=g[EMAIL]||"";
+  if(gid) return {id:gid,email:gem};
+ }
+ 
+ var store = window[REDUX_STORE_VAR];
+ 
+ if(store && typeof store.getState==="function"){
+  var st=store.getState();
+  var rid=(pick(st,REDUX_ID)||"").toString().trim();
+  var rem=pick(st,REDUX_EM)||"";
+  if(rid) return {id:rid,email:rem};
+ }
+ 
+ var u=safeParse(localStorage.getItem(LS_USER));
+ 
+ var lid=(u&&(u[ALTID]||u[ID])) || localStorage.getItem(LS_UID) || "";
+ var lem=(u&&u[EMAIL]) || localStorage.getItem(LS_EM) || "";
+ 
+ lid=(lid||"").toString().trim();
+ 
+ if(lid) return {id:lid,email:lem};
+ 
+ var cid=decodeURIComponent(getCookie(LS_UID)||"");
+ var cem=decodeURIComponent(getCookie(LS_EM)||"");
+ 
+ cid=(cid||"").toString().trim();
+ 
+ if(cid) return {id:cid,email:cem};
+ 
+ var mid=(meta("bubble:userId")||"").toString().trim();
+ var mem=meta("bubble:email")||"";
+ 
+ if(mid) return {id:mid,email:mem};
+ 
+ var qid=(qp("bubbleUserId")||"").toString().trim();
+ var qem=qp("bubbleEmail")||"";
+ 
+ if(qid) return {id:qid,email:qem};
+ 
+ return { id:"", email:"" };
+}
+ 
+/* ---------------- PAGE CHECK ---------------- */
+ 
+function onLoginPage(){
+ var p=(location.pathname||"").toLowerCase();
+ return LOGIN_HINTS.some(function(h){
+  return p.indexOf(h)>=0;
+ });
+}
+ 
+function bubbleExists(){
+ return !!document.getElementById("bubble-btn");
+}
+ 
+function panelIsOpen(){
+ var panel=document.getElementById("bubble-panel");
+ return !!panel && panel.style && panel.style.display!=="none";
+}
+ 
+/* ---------------- CLEANUP ---------------- */
+ 
+function teardown(){
+ 
+ var btn=document.getElementById("bubble-btn");
+ var panel=document.getElementById("bubble-panel");
+ 
+ if(btn && btn.parentNode) btn.parentNode.removeChild(btn);
+ if(panel && panel.parentNode) panel.parentNode.removeChild(panel);
+ 
+}
+ 
+/* ---------------- WIDGET LOAD ---------------- */
+ 
+function injectWidget(user){
+ 
+ if(workspaceDisabled) return;
+ if(window.__BUBBLE_DISABLED__) return;
+ 
+ Array.prototype.slice.call(document.querySelectorAll('script[src]'))
+  .filter(function(s){
+   return (s.src||'').indexOf('widget.js')>=0;
+  })
+  .forEach(function(s){
+   s.parentNode && s.parentNode.removeChild(s);
+  });
+ 
+ window.BUBBLE_USER = {
+  id: user.id || "",
+  email: user.email || "",
+  workspace: WORKSPACE,
+  key: WORKSPACE_KEY
+ };
+ 
+ var s=document.createElement("script");
+ s.src=WIDGET_URL;
+ s.async=true;
+ 
+ s.onerror=function(){
+  workspaceDisabled = true;
+  teardown();
+ };
+ 
+ document.body.appendChild(s);
+ 
+}
+ 
+/* ---------------- MAIN LOGIC ---------------- */
+ 
+var lastUserId=null;
+var lastPath=null;
+ 
+function evaluate(){
+ 
+ if(workspaceDisabled) return;
+ if(window.__BUBBLE_DISABLED__) return;
+ 
+ var path=location.pathname||"";
+ var isLogin=onLoginPage();
+ var user=getUser();
+ 
+ if(isLogin || !user.id){
+ 
+  if(bubbleExists()){
+   teardown();
   }
  
-  function onLoginPage(){
-    var p=(location.pathname||"").toLowerCase();
-    return LOGIN_HINTS.some(function(h){ return p.indexOf(h)>=0; });
-  }
+  lastUserId="";
+  lastPath=path;
  
-  function bubbleExists(){
-    return !!document.getElementById("bubble-btn");
-  }
+  return;
+ }
  
-  function panelIsOpen(){
-    var panel=document.getElementById("bubble-panel");
-    return !!panel && panel.style && panel.style.display!=="none";
-  }
+ var needsUserChange=(lastUserId!==user.id);
+ var exists=bubbleExists();
  
-  function teardown(){
-    var btn=document.getElementById("bubble-btn");
-    var panel=document.getElementById("bubble-panel");
-    if(btn && btn.parentNode) btn.parentNode.removeChild(btn);
-    if(panel && panel.parentNode) panel.parentNode.removeChild(panel);
-  }
+ if((!exists && !workspaceDisabled) || needsUserChange){
  
-  function injectWidget(user){
+  if(panelIsOpen() && !needsUserChange)
+   return;
  
-    if(workspaceDisabled) return;
+  if(needsUserChange)
+   teardown();
  
-    Array.prototype.slice.call(document.querySelectorAll('script[src]'))
-      .filter(function(s){ return (s.src||'').indexOf('widget.js')>=0; })
-      .forEach(function(s){ s.parentNode && s.parentNode.removeChild(s); });
+  injectWidget(user);
  
-    window.BUBBLE_USER = {
-      id: user.id || "",
-      email: user.email || "",
-      workspace: WORKSPACE,
-      key: WORKSPACE_KEY
-    };
+  lastUserId=user.id;
+  lastPath=path;
+ }
  
-    var s=document.createElement("script");
-    s.src=WIDGET_URL;
-    s.async=true;
+}
  
-    s.onerror=function(){
-      workspaceDisabled = true;
-      teardown();
-    };
+/* ---------------- TRIGGERS ---------------- */
  
-    document.body.appendChild(s);
-  }
+evaluate();
  
-  var lastUserId=null, lastPath=null;
+window.addEventListener("load", evaluate);
  
-  function evaluate(){
+window.addEventListener("popstate", evaluate);
  
-    if(workspaceDisabled) return;
+var pushState = history.pushState;
+history.pushState = function () {
+ pushState.apply(history, arguments);
+ evaluate();
+};
  
-    var path=location.pathname||"";
-    var isLogin=onLoginPage();
-    var user=getUser();
+document.addEventListener("visibilitychange", function(){
+ if(!document.hidden) evaluate();
+});
  
-    if(isLogin || !user.id){
-      if(bubbleExists() && !panelIsOpen()) teardown();
-      lastUserId=user.id||"";
-      lastPath=path;
-      return;
-    }
+/* LOGIN DETECTION LOOP */
  
-    var needsUserChange=(lastUserId!==user.id);
-    var needsPathChange=(lastPath!==path);
-    var exists=bubbleExists();
+var lastUserCheck=null;
  
-    if((!exists && !workspaceDisabled) || needsUserChange){
+setInterval(function(){
  
-      if(panelIsOpen() && !needsUserChange){
-        return;
-      }
+ if(window.__BUBBLE_DISABLED__) return;
  
-      if(needsUserChange) teardown();
+ var user=getUser();
+ var id=(user && user.id) ? user.id : "";
  
-      injectWidget(user);
+ if(id!==lastUserCheck){
  
-      lastUserId=user.id;
-      lastPath=path;
-    }
-  }
+  lastUserCheck=id;
  
   evaluate();
-  setInterval(evaluate, POLL_MS);
+ 
+ }
+ 
+},1000);
  
 })();
 </script>

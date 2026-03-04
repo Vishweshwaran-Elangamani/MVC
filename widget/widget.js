@@ -1,328 +1,397 @@
 (function () {
-  const __WIDGET_VERSION__ = "bubble-widget v1.2 (panel follows button; clears right/bottom)";
  
-  function start() {
-    console.log("[Bubble] starting", __WIDGET_VERSION__);
+const VERSION = "bubble-widget v3.0";
  
-    // ---- Read user injected by the snippet ----
-    const u = window.BUBBLE_USER || {};
-    if (!u || !u.id) {
-      console.warn("[Bubble] Missing window.BUBBLE_USER.id");
-      return;
-    }
+function start(){
  
-    const WORKSPACE = u.workspace || "default";
-    const WORKSPACE_KEY = u.key || ""; // per-workspace key placed by snippet
-    const API_BASE = "http://localhost:5013"; // <-- set to your API URL
+const u = window.BUBBLE_USER || {};
  
-    // ---- Styles (panel uses left/top; not right/bottom) ----
-    const style = document.createElement("style");
-    style.textContent = `
-      #bubble-btn{
-        position:fixed; right:16px; bottom:16px; width:48px; height:48px; border-radius:50%;
-        background:#5b8def; color:#fff; display:flex; align-items:center; justify-content:center;
-        font-weight:700; cursor:grab; z-index:2147483647;
-      }
-      #bubble-panel{
-        position:fixed; left:0; top:0; width:300px; max-height:380px; background:#fff;
-        border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.08);
-        overflow:hidden; display:none; z-index:2147483647;
-      }
-      #bubble-header{ padding:8px 12px; font-weight:600; border-bottom:1px solid #eee; }
-      #bubble-list{ height:250px; overflow:auto; padding:8px 12px; }
-      #bubble-input{ display:flex; gap:6px; padding:8px 12px; border-top:1px solid #eee; }
-      #bubble-input input{ flex:1; border:1px solid #ddd; border-radius:6px; padding:6px 8px; }
-      #bubble-input button{ padding:6px 10px; background:#5b8def; color:#fff; border:none; border-radius:6px; }
-      #bubble-error{ color:#b91c1c; padding:4px 12px; display:none; }
-    `;
-    document.head.appendChild(style);
+if(!u || !u.workspace) return;
  
-    // ---- Button & panel DOM ----
-    const btn = document.createElement("div");
-    btn.id = "bubble-btn";
-    btn.textContent = "●";
-    document.body.appendChild(btn);
+const WORKSPACE = u.workspace;
+const KEY = u.key || "";
+const USER_ID = u.id || "";
+const API = "http://localhost:5013";
  
-    const panel = document.createElement("div");
-    panel.id = "bubble-panel";
-    panel.innerHTML = `
-      <div id="bubble-header">My Notes</div>
-      <div id="bubble-error"></div>
-      <div id="bubble-list"></div>
-      <div id="bubble-input">
-        <input id="bubble-text" placeholder="Type a note..." />
-        <button id="bubble-add">Add</button>
-      </div>
-    `;
-    document.body.appendChild(panel);
+let stopLongPoll=false;
  
-    const elErr  = panel.querySelector("#bubble-error");
-    const elList = panel.querySelector("#bubble-list");
-    const BTN_SIZE  = 48;   // keep in sync with CSS
-    const PANEL_W   = 300;  // keep in sync with CSS
-    const PANEL_H   = 380;  // keep in sync with CSS max-height
-    const PANEL_GAP = 8;
+/* ---------------- REMOVE WIDGET ---------------- */
  
-    // ---- Position state & helpers ----
-    let btnPos = { left: null, top: null }; // last known button position (px)
+function removeWidget(){
  
-    function placePanelNearButton() {
-      if (!panel || panel.style.display === "none") return;
+stopLongPoll = true;
  
-      const vw = window.innerWidth, vh = window.innerHeight;
-      let left = btnPos.left;
-      let top  = btnPos.top;
+/* prevent snippet reinjection */
+window.__BUBBLE_DISABLED__ = true;
  
-      // If no explicit left/top yet (first open), derive from DOM rect
-      if (left == null || top == null) {
-        const rect = btn.getBoundingClientRect();
-        left = rect.left;
-        top  = rect.top;
-      }
+const btn=document.getElementById("bubble-btn");
+const panel=document.getElementById("bubble-panel");
  
-      // Decide side (left/right) and vertical flip (up/down) to keep panel on-screen
-      const openLeft = (left + BTN_SIZE + PANEL_GAP + PANEL_W > vw);
-      const openUp   = (top + PANEL_H > vh);
+if(btn) btn.remove();
+if(panel) panel.remove();
  
-      const panelLeft = openLeft
-        ? Math.max(0, left - PANEL_GAP - PANEL_W)
-        : Math.min(vw - PANEL_W, left + BTN_SIZE + PANEL_GAP);
+console.warn("[Bubble] workspace deleted → widget disabled");
  
-      const panelTop = openUp
-        ? Math.max(0, top + BTN_SIZE - PANEL_H)
-        : Math.min(vh - PANEL_H, top);
+}
  
-      // Apply left/top and explicitly clear right/bottom to defeat any old CSS
-      panel.style.left   = `${Math.round(panelLeft)}px`;
-      panel.style.top    = `${Math.round(panelTop)}px`;
-      panel.style.right  = "unset";
-      panel.style.bottom = "unset";
-    }
+/* ---------------- STYLE ---------------- */
  
-    window.addEventListener("resize", placePanelNearButton);
+const style=document.createElement("style");
  
-    // ---- Drag behavior (left/top positioning, panel follows) ----
-    let dragging = false, offset = [0, 0];
+style.textContent=`
+#bubble-btn{
+position:fixed;
+right:16px;
+bottom:16px;
+width:48px;
+height:48px;
+border-radius:50%;
+background:#5b8def;
+color:#fff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:700;
+cursor:grab;
+z-index:2147483647;
+}
  
-    // Initial button position expressed via left/top (not right/bottom)
-    (function setInitialBtnPosition() {
-      const vw = window.innerWidth, vh = window.innerHeight;
-      btnPos.left = vw - BTN_SIZE - 16;
-      btnPos.top  = vh - BTN_SIZE - 16;
-      btn.style.left   = `${btnPos.left}px`;
-      btn.style.top    = `${btnPos.top}px`;
-      btn.style.right  = "unset";
-      btn.style.bottom = "unset";
-    })();
+#bubble-panel{
+position:fixed;
+width:300px;
+max-height:380px;
+background:#fff;
+border:1px solid #e5e7eb;
+border-radius:10px;
+box-shadow:0 10px 30px rgba(0,0,0,.08);
+overflow:hidden;
+display:none;
+z-index:2147483647;
+}
  
-    btn.addEventListener("mousedown", e => {
-      dragging = true;
-      const rect = btn.getBoundingClientRect();
-      offset = [e.clientX - rect.left, e.clientY - rect.top];
-      btn.style.cursor = "grabbing";
-    });
+#bubble-header{
+padding:8px 12px;
+font-weight:600;
+border-bottom:1px solid #eee;
+}
  
-    document.addEventListener("mouseup", () => {
-      if (!dragging) return;
-      dragging = false;
-      btn.style.cursor = "grab";
-      const vw = window.innerWidth, vh = window.innerHeight;
-      btnPos.left = Math.min(vw - BTN_SIZE, Math.max(0, btn.offsetLeft));
-      btnPos.top  = Math.min(vh - BTN_SIZE, Math.max(0, btn.offsetTop));
-      placePanelNearButton();
-    });
+#bubble-list{
+height:250px;
+overflow:auto;
+padding:8px 12px;
+}
  
-    document.addEventListener("mousemove", e => {
-      if (!dragging) return;
+#bubble-input{
+display:flex;
+gap:6px;
+padding:8px 12px;
+border-top:1px solid #eee;
+}
  
-      const vw = window.innerWidth, vh = window.innerHeight;
-      let x = e.clientX - offset[0];
-      let y = e.clientY - offset[1];
+#bubble-input input{
+flex:1;
+border:1px solid #ddd;
+border-radius:6px;
+padding:6px 8px;
+}
  
-      x = Math.min(vw - BTN_SIZE, Math.max(0, x));
-      y = Math.min(vh - BTN_SIZE, Math.max(0, y));
+#bubble-input button{
+padding:6px 10px;
+background:#5b8def;
+color:#fff;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+`;
  
-      btn.style.left   = `${x}px`;
-      btn.style.top    = `${y}px`;
-      btn.style.right  = "unset";
-      btn.style.bottom = "unset";
+document.head.appendChild(style);
  
-      btnPos.left = x;
-      btnPos.top  = y;
+/* ---------------- DOM ---------------- */
  
-      placePanelNearButton();
-    });
+const btn=document.createElement("div");
+btn.id="bubble-btn";
+btn.textContent="●";
+document.body.appendChild(btn);
  
-    // ---- Toggle panel near current button position ----
-    btn.addEventListener("click", () => {
-      const willOpen = panel.style.display === "none";
-      panel.style.display = willOpen ? "block" : "none";
-      if (willOpen) {
-        if (btnPos.left == null || btnPos.top == null) {
-          const rect = btn.getBoundingClientRect();
-          btnPos.left = rect.left;
-          btnPos.top  = rect.top;
-        }
-        // Clear right/bottom just in case some CSS injected them
-        panel.style.right  = "unset";
-        panel.style.bottom = "unset";
-        placePanelNearButton();
-      }
-    });
+const panel=document.createElement("div");
+panel.id="bubble-panel";
  
-    // ---- Utilities ----
-    function showError(msg) {
-      elErr.style.display = "block";
-      elErr.textContent = msg;
-      setTimeout(() => { elErr.style.display = "none"; }, 4000);
-    }
+panel.innerHTML=`
+<div id="bubble-header">Notes • ${WORKSPACE}</div>
+<div id="bubble-list"></div>
+<div id="bubble-input">
+<input id="bubble-text" placeholder="Type a note..." />
+<button id="bubble-add">Add</button>
+</div>
+`;
  
-    function escapeHtml(s){
-      // (kept simple to match your original; safe input recommended)
-      return String(s || "").replace(/[&<>"']/g, c => ({
-        "&":"&", "<":"<", ">":">", "\"":"\"", "'":"'"
-      }[c]));
-    }
+document.body.appendChild(panel);
  
-    async function httpJson(url, options = {}, retries = 1) {
-      try {
-        const res = await fetch(url, options);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      } catch (err) {
-        if (retries > 0) return httpJson(url, options, retries - 1);
-        throw err;
-      }
-    }
+const listEl=panel.querySelector("#bubble-list");
  
-    function qs(obj) { return new URLSearchParams(obj).toString(); }
+/* ---------------- PANEL POSITION ---------------- */
  
-    // ------------------------------------------------------------------
-    // API: include WORKSPACE_KEY to enforce partitioning on the backend
-    // ------------------------------------------------------------------
-    const listNotes = () =>
-      httpJson(`${API_BASE}/api/notes?${qs({
-        workspace: WORKSPACE,
-        key: WORKSPACE_KEY,
-        userId: String(u.id)
-      })}`);
+function positionPanel(){
  
-    const addNote = (content) =>
-      httpJson(`${API_BASE}/api/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspace: WORKSPACE,
-          key: WORKSPACE_KEY,
-          userId: String(u.id),
-          content
-        })
-      });
+const rect=btn.getBoundingClientRect();
  
-    const delNote = (id) =>
-      fetch(`${API_BASE}/api/notes/${id}?${qs({
-        workspace: WORKSPACE,
-        key: WORKSPACE_KEY,
-        userId: String(u.id)
-      })}`, { method: "DELETE" });
+const panelW=300;
+const panelH=380;
+const gap=8;
  
-    // ---- Render ----
-    async function render() {
-      try {
-        const list = await listNotes();
-        elList.innerHTML = list.map(n => `
-          <div style="display:flex;justify-content:space-between;gap:8px;margin:6px 0;">
-            <div style="flex:1;font-size:12px;color:#333;">${escapeHtml(n.content)}</div>
-            <button data-id="${n.id}" style="border:none;background:#f3f4f6;border-radius:6px;padding:4px 6px;">x</button>
-          </div>
-        `).join("");
+const vw=window.innerWidth;
+const vh=window.innerHeight;
  
-        elList.querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
-          await delNote(b.dataset.id);
-          render();
-        });
-      } catch (e) {
-        showError("Failed to load notes");
-      }
-    }
+let left;
+let top;
  
-    // ---- Add handler ----
-    document.getElementById("bubble-add").onclick = async () => {
-      const inp = document.getElementById("bubble-text");
-      const val = (inp.value || "").trim();
-      if (!val) return;
-      try {
-        await addNote(val);
-        inp.value = "";
-        render();
-      } catch {
-        showError("Failed to add note");
-      }
-    };
+if(rect.right + panelW + gap < vw){
+ left = rect.right + gap;
+}else{
+ left = rect.left - panelW - gap;
+}
  
-    // =========================
-    // Appearance (instant, long-poll)
-    // =========================
-    function applyAppearance(cfg) {
-      if (!cfg) return;
-      if (cfg.color && typeof cfg.color === "string") {
-        btn.style.background = cfg.color.trim();
-      }
-      if (typeof cfg.text === "string" && cfg.text.length > 0) {
-        btn.textContent = cfg.text;
-      }
-    }
+if(rect.top + panelH < vh){
+ top = rect.top;
+}else{
+ top = vh - panelH - 10;
+}
  
-    let currentVersion = 0;
+panel.style.left = left + "px";
+panel.style.top = top + "px";
  
-    async function fetchInitialAppearance() {
-      try {
-        const cfg = await httpJson(`${API_BASE}/api/widget/config?${qs({
-          workspace: WORKSPACE,
-          key: WORKSPACE_KEY
-        })}`);
-        applyAppearance(cfg);
-        currentVersion = cfg.version || 0;
-      } catch {
-        // ignore; will retry via long-poll loop anyway
-      }
-    }
+}
  
-    async function longPoll() {
-      while (true) {
-        try {
-          const url = `${API_BASE}/api/widget/config/long?${qs({
-            workspace: WORKSPACE,
-            key: WORKSPACE_KEY,
-            since: String(currentVersion || 0)
-          })}`;
-          const res = await fetch(url);
-          if (res.status === 200) {
-            const cfg = await res.json();
-            applyAppearance(cfg);
-            currentVersion = cfg.version || currentVersion;
-          }
-          // 204 (no content) just loops again immediately
-        } catch {
-          // transient network hiccup: brief backoff then continue
-          await new Promise(r => setTimeout(r, 2000));
-        }
-      }
-    }
+/* ---------------- DRAG ---------------- */
  
-    // Kick off appearance flow (independent from your snippet's evaluate() loop)
-    fetchInitialAppearance().then(longPoll);
+let dragging=false;
+let offset=[0,0];
  
-    // Initial notes render
-    render();
-  }
+btn.addEventListener("mousedown",e=>{
  
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
-  } else {
-    start();
-  }
+dragging=true;
+ 
+const r=btn.getBoundingClientRect();
+ 
+offset=[e.clientX-r.left,e.clientY-r.top];
+ 
+btn.style.cursor="grabbing";
+ 
+});
+ 
+document.addEventListener("mouseup",()=>{
+ 
+dragging=false;
+btn.style.cursor="grab";
+ 
+});
+ 
+document.addEventListener("mousemove",e=>{
+ 
+if(!dragging) return;
+ 
+const size=48;
+const vw=window.innerWidth;
+const vh=window.innerHeight;
+ 
+let x=e.clientX-offset[0];
+let y=e.clientY-offset[1];
+ 
+x=Math.max(0,Math.min(vw-size,x));
+y=Math.max(0,Math.min(vh-size,y));
+ 
+btn.style.left=x+"px";
+btn.style.top=y+"px";
+ 
+btn.style.right="unset";
+btn.style.bottom="unset";
+ 
+if(panel.style.display==="block"){
+ positionPanel();
+}
+ 
+});
+ 
+/* ---------------- PANEL TOGGLE ---------------- */
+ 
+btn.onclick=()=>{
+ 
+const open = panel.style.display==="none";
+ 
+panel.style.display=open?"block":"none";
+ 
+if(open) positionPanel();
+ 
+};
+ 
+/* ---------------- UTIL ---------------- */
+ 
+function qs(o){
+return new URLSearchParams(o).toString();
+}
+ 
+async function httpJson(url,opt={}){
+ 
+const r=await fetch(url,opt);
+ 
+if(r.status===404){
+removeWidget();
+throw new Error("workspace deleted");
+}
+ 
+return r.json();
+ 
+}
+ 
+/* ---------------- NOTES ---------------- */
+ 
+const listNotes=()=>httpJson(`${API}/api/notes?${qs({
+workspace:WORKSPACE,
+key:KEY,
+userId:USER_ID
+})}`);
+ 
+const addNote=(content)=>httpJson(`${API}/api/notes`,{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+workspace:WORKSPACE,
+key:KEY,
+userId:USER_ID,
+content
+})
+});
+ 
+const delNote=(id)=>fetch(`${API}/api/notes/${id}?${qs({
+workspace:WORKSPACE,
+key:KEY,
+userId:USER_ID
+})}`,{ method:"DELETE" });
+ 
+/* ---------------- RENDER NOTES ---------------- */
+ 
+async function render(){
+ 
+try{
+ 
+const list=await listNotes();
+ 
+listEl.innerHTML=list.map(n=>`
+<div style="display:flex;justify-content:space-between;margin:6px 0">
+<div style="flex:1;font-size:12px">${n.content}</div>
+<button data-id="${n.id}">x</button>
+</div>
+`).join("");
+ 
+listEl.querySelectorAll("button").forEach(b=>{
+b.onclick=async()=>{
+await delNote(b.dataset.id);
+render();
+};
+});
+ 
+}catch{}
+ 
+}
+ 
+/* ---------------- ADD NOTE ---------------- */
+ 
+document.getElementById("bubble-add").onclick=async()=>{
+ 
+const inp=document.getElementById("bubble-text");
+ 
+const val=(inp.value||"").trim();
+ 
+if(!val) return;
+ 
+await addNote(val);
+ 
+inp.value="";
+ 
+render();
+ 
+};
+ 
+/* ---------------- APPEARANCE ---------------- */
+ 
+function applyAppearance(cfg){
+ 
+if(cfg.color) btn.style.background=cfg.color;
+ 
+if(cfg.text) btn.textContent=cfg.text;
+ 
+}
+ 
+let version=0;
+ 
+async function initAppearance(){
+ 
+try{
+ 
+const cfg=await httpJson(`${API}/api/widget/config?${qs({
+workspace:WORKSPACE,
+key:KEY
+})}`);
+ 
+applyAppearance(cfg);
+ 
+version=cfg.version||0;
+ 
+}catch{}
+ 
+}
+ 
+async function longPoll(){
+ 
+while(!stopLongPoll){
+ 
+try{
+ 
+const res=await fetch(`${API}/api/widget/config/long?${qs({
+workspace:WORKSPACE,
+key:KEY,
+since:version
+})}`);
+ 
+if(res.status===404){
+removeWidget();
+return;
+}
+ 
+if(res.status===200){
+ 
+const cfg=await res.json();
+ 
+applyAppearance(cfg);
+ 
+version=cfg.version||version;
+ 
+}
+ 
+}catch{
+ 
+await new Promise(r=>setTimeout(r,2000));
+ 
+}
+ 
+}
+ 
+}
+ 
+/* ---------------- INIT ---------------- */
+ 
+initAppearance().then(longPoll);
+ 
+render();
+ 
+}
+ 
+if(document.readyState==="loading"){
+document.addEventListener("DOMContentLoaded",start);
+}else{
+start();
+}
  
 })();
- 
  
